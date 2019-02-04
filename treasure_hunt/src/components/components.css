@@ -1,0 +1,7 @@
+/* Room Component */
+.square {
+  height: 55px;
+  width: 55px;
+  background-color: #0585ff;
+  border-radius: 8px;
+}
