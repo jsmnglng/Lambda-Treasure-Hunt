@@ -84,6 +84,7 @@ class MapTraversal extends Component {
     const data_input = { direction: input };
     const traversalPath = [];
     // const stack = [];
+    const newGraph = { ...graph };
 
     let current_room_exits = graph[room_id];
     console.log("CURRENT ROOM EXITS", current_room_exits);
@@ -125,9 +126,13 @@ class MapTraversal extends Component {
       });
       console.log("MOVES", moves);
       console.log("GRAPH", graph);
-      // graph[prev_room_id][exit] = room_id;
-      // moves[this.oppositeDir(exit)] = prev_room_id;
-      // graph[room_id] = moves;
+      newGraph[prev_room_id][exit] = room_id;
+      moves[this.oppositeDir(exit)] = prev_room_id;
+      newGraph[room_id] = moves;
+      this.setState({
+        graph: newGraph
+      });
+      console.log("UPDATED GRAPH", this.state.graph);
     }
   };
 
