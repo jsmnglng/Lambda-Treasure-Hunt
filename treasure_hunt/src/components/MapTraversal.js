@@ -14,14 +14,19 @@ class MapTraversal extends Component {
     room_id: 0,
     coordinates: "",
     exits: [],
+    cooldown: 0,
     input: ""
   };
 
   componentDidMount() {
-    this.init();
+    if (localStorage.hasOwnProperty("graph")) {
+      let value = JSON.parse(localStorage.getItem("graph"));
+      this.setState({ graph: value });
+    }
+    this.getLocation();
   }
 
-  init = () => {
+  getLocation = () => {
     axios
       .get(`${baseURL}/init/`, config)
       .then(res => {
@@ -29,41 +34,100 @@ class MapTraversal extends Component {
         this.setState({
           room_id: res.data.room_id,
           coordinates: res.data.coordinates,
+          cooldown: res.data.cooldown,
           exits: res.data.exits
         });
       })
       .catch(err => console.log(err));
   };
 
-  handleInputChange = event => {
-    this.setState({ input: event.target.value });
+  handleInputChange = e => {
+    this.setState({ input: e.target.value });
   };
 
-  moveSubmit = e => {
-    e.preventDefault();
-    const { input } = this.state;
-    const data_input = { direction: input };
+  // moveSubmit = e => {
+  //   e.preventDefault();
+  //   const { input, room_id, reverseDir, graph } = this.state;
+  //   const data_input = { direction: input };
 
-    switch (input.toLowerCase()) {
-      case "n":
-      case "s":
-      case "e":
-      case "w":
+  //   if (["n", "s", "e", "w"].includes(input)) {
+  //     axios
+  //       .post(`${baseURL}/move`, data_input, config)
+  //       .then(res => {
+  //         console.log("POST res.data BEFORE", res.data);
+
+  //         this.setState({
+  //           room_id: res.data.room_id,
+  //           coordinates: res.data.coordinates,
+  //           exits: res.data.exits,
+  //           cooldown: res.data.cooldown,
+  //           input: ""
+  //         });
+  //       })
+  //       .catch(err => console.log(err));
+  //   }
+  // };
+
+  oppositeDir = d => {
+    const directions = {
+      n: "s",
+      s: "n",
+      e: "w",
+      w: "e"
+    };
+    return directions[d];
+  };
+
+  generateMap = e => {
+    e.preventDefault();
+    const { graph, room_id, input, exits } = this.state;
+    const data_input = { direction: input };
+    const traversalPath = [];
+    // const stack = [];
+
+    let current_room_exits = graph[room_id];
+    console.log("CURRENT ROOM EXITS", current_room_exits);
+    const unexplored_exits = [];
+
+    for (let exit in current_room_exits) {
+      if (current_room_exits[exit] === "?") {
+        unexplored_exits.push(exit);
+      }
+      console.log("EXIT", exit);
+    }
+
+    let exit = input;
+    if (unexplored_exits) {
+      let prev_room_id = room_id;
+      if (["n", "s", "e", "w"].includes(exit)) {
+        traversalPath.push(exit);
+        // stack.push(exit);
         axios
           .post(`${baseURL}/move`, data_input, config)
           .then(res => {
-            console.log("POST res.data", res.data);
+            console.log("POST res.data BEFORE", res.data);
+
             this.setState({
               room_id: res.data.room_id,
               coordinates: res.data.coordinates,
               exits: res.data.exits,
+              cooldown: res.data.cooldown,
               input: ""
             });
+            console.log("POST res.data AFTER", res.data);
           })
           .catch(err => console.log(err));
-        return;
-      default:
-        return;
+      }
+
+      const moves = {};
+      exits.forEach(exit => {
+        moves[exit] = "?";
+      });
+      console.log("MOVES", moves);
+      console.log("GRAPH", graph);
+      // graph[prev_room_id][exit] = room_id;
+      // moves[this.oppositeDir(exit)] = prev_room_id;
+      // graph[room_id] = moves;
     }
   };
 
@@ -77,7 +141,8 @@ class MapTraversal extends Component {
         <h2>Coordinates: {coordinates}</h2>
         <h2>Exits: {room_exits}</h2>
 
-        <form onSubmit={this.moveSubmit}>
+        <form onSubmit={this.generateMap}>
+          {/* <button type="submit">Generate Map</button> */}
           <label>Move to: </label>
           <input type="text" value={input} onChange={this.handleInputChange} />
           <button type="submit">Go</button>
