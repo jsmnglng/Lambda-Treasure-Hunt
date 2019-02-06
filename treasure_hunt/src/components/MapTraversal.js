@@ -9,14 +9,19 @@ const config = {
 };
 
 class MapTraversal extends Component {
-  state = {
-    graph: { 0: { n: "?", s: "?", e: "?", w: "?" } },
-    room_id: 0,
-    coordinates: "",
-    exits: [],
-    cooldown: 0,
-    input: ""
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      graph: { 0: { n: "?", s: "?", e: "?", w: "?" } },
+      room_id: 0,
+      coordinates: "",
+      exits: [],
+      cooldown: 0,
+      input: ""
+    };
+    this.graph = {};
+    this.moves = {};
+  }
 
   componentDidMount() {
     if (localStorage.hasOwnProperty("graph")) {
@@ -116,23 +121,22 @@ class MapTraversal extends Component {
               input: ""
             });
             console.log("POST res.data AFTER", res.data);
+
+            exits.forEach(exit => {
+              this.moves[exit] = "?";
+            });
+            console.log("MOVES", this.moves);
+            // this.moves[this.oppositeDir(exit)] = prev_room_id;
+            this.graph[room_id] = { ...this.moves };
+            this.graph[prev_room_id][exit] = room_id;
+            this.graph[room_id][this.oppositeDir(exit)] = prev_room_id;
           })
           .catch(err => console.log(err));
       }
 
-      const moves = {};
-      exits.forEach(exit => {
-        moves[exit] = "?";
-      });
-      console.log("MOVES", moves);
       console.log("GRAPH", graph);
-      newGraph[prev_room_id][exit] = room_id;
-      moves[this.oppositeDir(exit)] = prev_room_id;
-      newGraph[room_id] = moves;
-      this.setState({
-        graph: newGraph
-      });
-      console.log("UPDATED GRAPH", this.state.graph);
+
+      console.log("UPDATED GRAPH", this.graph);
     }
   };
 
