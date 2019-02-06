@@ -12,7 +12,7 @@ class MapTraversal extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      graph: { 0: { n: "?", s: "?", e: "?", w: "?" } },
+      // graph: { 0: { n: "?", s: "?", e: "?", w: "?" } },
       room_id: 0,
       coordinates: "",
       exits: [],
@@ -85,13 +85,14 @@ class MapTraversal extends Component {
 
   generateMap = e => {
     e.preventDefault();
-    const { graph, room_id, input, exits } = this.state;
+    const { input } = this.state;
     const data_input = { direction: input };
     const traversalPath = [];
     // const stack = [];
-    const newGraph = { ...graph };
+    // const newGraph = { ...graph };
+    this.graph[this.state.room_id] = { n: "?", s: "?", e: "?", w: "?" };
 
-    let current_room_exits = graph[room_id];
+    let current_room_exits = this.graph[this.state.room_id];
     console.log("CURRENT ROOM EXITS", current_room_exits);
     const unexplored_exits = [];
 
@@ -104,7 +105,7 @@ class MapTraversal extends Component {
 
     let exit = input;
     if (unexplored_exits) {
-      let prev_room_id = room_id;
+      let prev_room_id = this.state.room_id;
       if (["n", "s", "e", "w"].includes(exit)) {
         traversalPath.push(exit);
         // stack.push(exit);
@@ -122,21 +123,25 @@ class MapTraversal extends Component {
             });
             console.log("POST res.data AFTER", res.data);
 
-            exits.forEach(exit => {
+            this.state.exits.forEach(exit => {
               this.moves[exit] = "?";
             });
             console.log("MOVES", this.moves);
+            // console.log("ROOM ID", room_id);
+            console.log("RAW ROOM ID", this.state.room_id);
             // this.moves[this.oppositeDir(exit)] = prev_room_id;
-            this.graph[room_id] = { ...this.moves };
-            this.graph[prev_room_id][exit] = room_id;
-            this.graph[room_id][this.oppositeDir(exit)] = prev_room_id;
+            console.log("THIS.GRAPH", this.graph);
+            this.graph[prev_room_id][exit] = this.state.room_id;
+            this.graph[this.state.room_id] = { ...this.moves };
+            console.log("PREV ROOM ID", prev_room_id);
+            this.graph[this.state.room_id][
+              this.oppositeDir(exit)
+            ] = prev_room_id;
           })
           .catch(err => console.log(err));
       }
 
-      console.log("GRAPH", graph);
-
-      console.log("UPDATED GRAPH", this.graph);
+      // console.log("GRAPH", graph);
     }
   };
 
