@@ -84,10 +84,12 @@ class MapTraversal extends Component {
   };
 
   traverseMap = () => {
+    // e.preventDefault();
     const { input } = this.state;
     // const data_input = { direction: input };
 
     let current_room_exits = this.graph[this.state.room_id];
+    // console.log(this.graph[this.state.room_id]);
     console.log("CURRENT ROOM EXITS", current_room_exits);
     const unexplored_exits = [];
 
@@ -98,11 +100,16 @@ class MapTraversal extends Component {
       console.log("EXIT", exit);
     }
 
-    // let exit = this.sample(unexplored_exits);
-    let exit = input;
+    let exit = "";
+    if (input) {
+      exit = input;
+    } else {
+      exit = this.sample(unexplored_exits);
+    }
+    // let exit = input;
     console.log("EXIT INPUT", exit);
     const data_input = { direction: exit };
-    if (unexplored_exits) {
+    if (unexplored_exits.length !== 0) {
       console.log("UNEXPLORED EXITS", unexplored_exits);
       let prev_room_id = this.state.room_id;
       if (["n", "s", "e", "w"].includes(exit)) {
@@ -120,7 +127,7 @@ class MapTraversal extends Component {
               room_id: res.data.room_id,
               coordinates: res.data.coordinates,
               exits: res.data.exits,
-              cooldown: res.data.cooldown,
+              // cooldown: res.data.cooldown,
               input: ""
             });
             console.log("POST res.data AFTER", res.data);
@@ -150,6 +157,7 @@ class MapTraversal extends Component {
       }
     } else {
       if (this.state.stack) {
+        console.log("TOUCHED");
         let prev_exit = this.stack.pop();
         let opp_input = this.oppositeDir(prev_exit);
         const opp_data_input = { direction: opp_input };
@@ -169,6 +177,14 @@ class MapTraversal extends Component {
 
   generateMap = e => {
     e.preventDefault();
+    if (this.stack.length !== 0) {
+      console.log("COOLDOWN", this.state.cooldown);
+      setInterval(this.traverseMap, 15 * 1000);
+      // clearInterval(interval);
+    } else {
+      console.log("Traversal Complete");
+      return;
+    }
   };
 
   render() {
@@ -181,7 +197,7 @@ class MapTraversal extends Component {
         <h2>Coordinates: {coordinates}</h2>
         <h2>Exits: {room_exits}</h2>
 
-        <form onSubmit={this.traverseMap}>
+        <form onSubmit={this.generateMap}>
           {/* <button type="submit">Generate Map</button> */}
           <label>Move to: </label>
           <input type="text" value={input} onChange={this.handleInputChange} />
