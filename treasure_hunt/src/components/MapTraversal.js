@@ -7,6 +7,7 @@ const config = {
     Authorization: `Token ${process.env.REACT_APP_API_KEY}`
   }
 };
+let timer = 0;
 
 class MapTraversal extends Component {
   constructor(props) {
@@ -16,7 +17,10 @@ class MapTraversal extends Component {
       coordinates: "",
       exits: [],
       cooldown: 0,
+      title: "",
       input: "",
+      description: "",
+      messages: "",
       // traversalPath: [],
       stack: []
     };
@@ -56,6 +60,9 @@ class MapTraversal extends Component {
       .then(res => {
         console.log("GET res.data", res.data);
         this.setState({
+          title: res.data.title,
+          description: res.data.description,
+          messages: res.data.messages,
           room_id: res.data.room_id,
           coordinates: res.data.coordinates,
           cooldown: res.data.cooldown,
@@ -83,6 +90,54 @@ class MapTraversal extends Component {
     return array[Math.floor(Math.random() * array.length)];
   };
 
+  move = () => {
+    const { input } = this.state;
+
+    let current_room_exits = this.graph[this.state.room_id];
+    console.log("CURRENT ROOM EXITS", current_room_exits);
+    const unexplored_exits = [];
+
+    for (let exit in current_room_exits) {
+      unexplored_exits.push(exit);
+      console.log("EXIT", exit);
+    }
+
+    let exit = this.sample(unexplored_exits);
+    console.log("EXIT INPUT", exit);
+    const data_input = { direction: exit };
+    console.log("UNEXPLORED EXITS", unexplored_exits);
+    let prev_room_id = this.state.room_id;
+    if (["n", "s", "e", "w"].includes(exit)) {
+      this.traversalPath.push(exit);
+      this.stack.push(exit);
+
+      axios
+        .post(`${baseURL}/move`, data_input, config)
+        .then(res => {
+          console.log("POST res.data BEFORE", res.data);
+
+          this.setState({
+            title: res.data.title,
+            description: res.data.description,
+            messages: res.data.messages,
+            room_id: res.data.room_id,
+            coordinates: res.data.coordinates,
+            exits: res.data.exits,
+            input: ""
+          });
+          const moves = {};
+          res.data.exits.forEach(exit => {
+            moves[exit] = "?";
+          });
+
+          this.graph[prev_room_id][exit] = res.data.room_id;
+          this.graph[res.data.room_id] = moves;
+          this.graph[res.data.room_id][this.oppositeDir(exit)] = prev_room_id;
+        })
+        .catch(err => console.log(err));
+    }
+  };
+
   traverseMap = () => {
     // e.preventDefault();
     const { input } = this.state;
@@ -100,12 +155,7 @@ class MapTraversal extends Component {
       console.log("EXIT", exit);
     }
 
-    let exit = "";
-    if (input) {
-      exit = input;
-    } else {
-      exit = this.sample(unexplored_exits);
-    }
+    let exit = this.sample(unexplored_exits);
     // let exit = input;
     console.log("EXIT INPUT", exit);
     const data_input = { direction: exit };
@@ -124,6 +174,9 @@ class MapTraversal extends Component {
             console.log("POST res.data BEFORE", res.data);
 
             this.setState({
+              title: res.data.title,
+              description: res.data.description,
+              // messages: res.data.messages,
               room_id: res.data.room_id,
               coordinates: res.data.coordinates,
               exits: res.data.exits,
@@ -179,31 +232,62 @@ class MapTraversal extends Component {
     e.preventDefault();
     if (this.stack.length !== 0) {
       console.log("COOLDOWN", this.state.cooldown);
+      // this.traverseMap();
       setInterval(this.traverseMap, 15 * 1000);
-      // clearInterval(interval);
     } else {
       console.log("Traversal Complete");
       return;
     }
   };
 
+  exploreMap = e => {
+    e.preventDefault();
+    this.move();
+    timer = setInterval(this.move, 10 * 1000);
+  };
+
+  stopExplore = e => {
+    e.preventDefault();
+    clearInterval(timer);
+  };
+
   render() {
-    const { room_id, exits, coordinates, input } = this.state;
+    const {
+      room_id,
+      exits,
+      coordinates,
+      title,
+      description,
+      messages
+    } = this.state;
     const room_exits = exits.join(" ").toUpperCase();
 
     return (
       <div>
-        <h1>Room {room_id}</h1>
-        <h2>Coordinates: {coordinates}</h2>
-        <h2>Exits: {room_exits}</h2>
+        <h2>{title}</h2>
+        <p>{description}</p>
+        <p>{messages}</p>
+        <h3>Room: {room_id}</h3>
+        <h3>Coordinates: {coordinates}</h3>
+        <h3>Exits: {room_exits}</h3>
 
-        <form onSubmit={this.generateMap}>
-          {/* <button type="submit">Generate Map</button> */}
-          <label>Move to: </label>
-          <input type="text" value={input} onChange={this.handleInputChange} />
-          {/* <button type="submit" onClick={this.traverseMap}> */}
-          <button type="submit">Go</button>
-        </form>
+        <div className="btn-group">
+          <button
+            className="green-btn"
+            type="submit"
+            onClick={this.generateMap}
+          >
+            Generate Map
+          </button>
+          <button className="blue-btn" type="submit" onClick={this.exploreMap}>
+            Explore Map
+          </button>
+          <button className="red-btn" type="submit" onClick={this.stopExplore}>
+            Stop Exploring
+          </button>
+        </div>
+
+        {/* </form> */}
       </div>
     );
   }
